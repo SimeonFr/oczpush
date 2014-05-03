@@ -374,7 +374,7 @@ class BackendOCCalendar extends BackendDiff {
 	 * @return array                        same return value as StatMessage()
 	 * @throws StatusException              could throw specific SYNC_STATUS_* exceptions
 	 */
-	public function ChangeMessage($folderid, $id, $message) {
+	public function ChangeMessage($folderid, $id, $message, $contentparameters) {
 		ZLog::Write(LOGLEVEL_DEBUG, 'OCCalendar::ChangeMessage(' . $folderid . ', ' . $id . ', ..)');
 
 		ZLog::Write(LOGLEVEL_DEBUG, 'OCCalendar::ChangeMessage: $message = (' . print_r($message, true));
@@ -578,7 +578,7 @@ class BackendOCCalendar extends BackendDiff {
 	 * @return boolean                      status of the operation
 	 * @throws StatusException              could throw specific SYNC_STATUS_* exceptions
 	 */
-	public function SetReadFlag($folderid, $id, $flags) {
+	public function SetReadFlag($folderid, $id, $flags, $contentparameters) {
 		return false;
 	}
 
@@ -592,7 +592,7 @@ class BackendOCCalendar extends BackendDiff {
 	 * @return boolean                      status of the operation
 	 * @throws StatusException              could throw specific SYNC_STATUS_* exceptions
 	 */
-	public function DeleteMessage($folderid, $id) {
+	public function DeleteMessage($folderid, $id, $contentparameters) {
 		$objectEntry = OC_Calendar_Object::findWhereDAVDataIs(substr($folderid, 2), $id . '.ics');
 		return OC_Calendar_Object::delete($objectEntry['id']);
 	}
@@ -609,7 +609,7 @@ class BackendOCCalendar extends BackendDiff {
 	 * @return boolean                      status of the operation
 	 * @throws StatusException              could throw specific SYNC_MOVEITEMSSTATUS_* exceptions
 	 */
-	public function MoveMessage($folderid, $id, $newfolderid) {
+	public function MoveMessage($folderid, $id, $newfolderid, $contentparameters) {
 		return false;
 	}
 
