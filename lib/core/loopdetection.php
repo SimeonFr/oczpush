@@ -515,6 +515,7 @@ class LoopDetection extends InterProcessData {
             $this->checkArrayStructure($loopdata, $folderid);
             $current = $loopdata[self::$devid][self::$user][$folderid];
 
+
             // update the usage flag
             $current["usage"] = $counter;
 

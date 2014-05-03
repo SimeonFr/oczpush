@@ -1,7 +1,7 @@
 <?php
 /***********************************************
 * File      :   dummy.php
-* Project   :   oczpush, https://github.com/gza/oczpush
+* Project   :   oczpush
 * Descr     :   This backend is for items not implemented in owncloud
 * Licence   :	AGPL
 ************************************************/

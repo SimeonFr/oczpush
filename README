@@ -19,9 +19,9 @@ Why ?:
 OLD README:
 
 Based on
-- z-push 2.0.7 stable's svn version
-   http://svn.berlios.de/svnroot/repos/z-push/release/2.0
-- Owncloud's (should work on stable 4.5.x)
+- z-push 2.1.1 stable's svn version
+   http://download.z-push.org/final/2.1/
+- Owncloud's (should work on stable 6.0.x)
    http://owncloud.org/
 
 What works :
@@ -47,7 +47,7 @@ Todo :
 
 Quick Install, debian/ubuntu style (thks to AlainB) :
 - checkout :
- cd /var/www ; git clone https://github.com/gza/oczpush.git
+ cd /var/www ; git clone https://github.com/SimeonFr/oczpush.git
 
 - php parameters (I prefer put it in apache conf) + Apache conf
 
@@ -66,11 +66,14 @@ chown www-data:www-data /var/log/oczpush/ /var/lib/oczpush/
 
 - edit /var/www/oczpush/config.php.inc
 NB: if you installed from debian package, this is probably '/usr/share/owncloud', otherwise, you know better than me :)
+
+*Important*
+States of Z-Push 2.0 and Z-Push 2.1 are not compatible. A state migration
+script is available in the tools folder.
+
+Please also observe the published release notes of the new Z-Push version.
+For some releases it is necessary to e.g. resynchronize the mobile. 
+
 define('OC_DIR', '/var/www/owncloud');
 
 - rename /var/www/oczpush/config.php.inc to /var/www/oczpush/config.php
-
-- for Owncloud 4 replace /var/www/oczpush/backends/occontacts.php with /var/www/oczpush/backends/occontacts4.php
-
-- optional, if you know what you do, Upgrade z-push codebase :
-z-push's .svn is integrated, svn up should work, but will probably prevent any git pull to work anymore

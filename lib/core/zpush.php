@@ -97,6 +97,17 @@ class ZPush {
     // Webservice commands
     const COMMAND_WEBSERVICE_DEVICE = -100;
 
+    // Latest supported State version
+    const STATE_VERSION = IStateMachine::STATEVERSION_02;
+
+    static private $autoloadBackendPreference = array(
+                    "BackendZarafa",
+                    "BackendCombined",
+                    "BackendIMAP",
+                    "BackendVCardDir",
+                    "BackendMaildir"
+                );
+
     static private $supportedASVersions = array(
                     self::ASV_1,
                     self::ASV_2,
@@ -219,11 +230,15 @@ class ZPush {
         if (!file_exists(LOGFILEDIR))
             throw new FatalMisconfigurationException("The configured LOGFILEDIR does not exist or can not be accessed.");
 
-        if (!touch(LOGFILE))
+        if ((!file_exists(LOGFILE) && !touch(LOGFILE)) || !is_writable(LOGFILE))
             throw new FatalMisconfigurationException("The configured LOGFILE can not be modified.");
 
-        if (!touch(LOGERRORFILE))
+        if ((!file_exists(LOGERRORFILE) && !touch(LOGERRORFILE)) || !is_writable(LOGERRORFILE))
             throw new FatalMisconfigurationException("The configured LOGERRORFILE can not be modified.");
+
+        // check ownership on the (eventually) just created files
+        Utils::FixFileOwner(LOGFILE);
+        Utils::FixFileOwner(LOGERRORFILE);
 
         // set time zone
         // code contributed by Robert Scheck (rsc) - more information: https://developer.berlios.de/mantis/view.php?id=479
@@ -258,6 +273,12 @@ class ZPush {
         }
         else if (SINK_FORCERECHECK !== false && (!is_int(SINK_FORCERECHECK) || SINK_FORCERECHECK < 1))
             throw new FatalMisconfigurationException("The SINK_FORCERECHECK value must be 'false' or a number higher than 0.");
+
+        if (!defined('SYNC_CONTACTS_MAXPICTURESIZE')) {
+            define('SYNC_CONTACTS_MAXPICTURESIZE', 49152);
+        }
+        else if ((!is_int(SYNC_CONTACTS_MAXPICTURESIZE) || SYNC_CONTACTS_MAXPICTURESIZE < 1))
+            throw new FatalMisconfigurationException("The SYNC_CONTACTS_MAXPICTURESIZE value must be a number higher than 0.");
 
         // the check on additional folders will not throw hard errors, as this is probably changed on live systems
         if (isset($additionalFolders) && !is_array($additionalFolders))
@@ -307,8 +328,9 @@ class ZPush {
      * which has to be an IStateMachine implementation
      *
      * @access public
-     * @return object   implementation of IStateMachine
      * @throws FatalNotImplementedException
+     * @throws HTTPReturnCodeException
+     * @return object   implementation of IStateMachine
      */
     static public function GetStateMachine() {
         if (!isset(ZPush::$stateMachine)) {
@@ -328,8 +350,23 @@ class ZPush {
                 include_once('lib/default/filestatemachine.php');
                 ZPush::$stateMachine = new FileStateMachine();
             }
+
+            if (ZPush::$stateMachine->GetStateVersion() !== ZPush::GetLatestStateVersion()) {
+                if (class_exists("TopCollector")) self::GetTopCollector()->AnnounceInformation("Run migration script!", true);
+                throw new HTTPReturnCodeException(sprintf("The state version available to the %s is not the latest version - please run the state upgrade script. See release notes for more information.", get_class(ZPush::$stateMachine), 503));
+            }
         }
         return ZPush::$stateMachine;
+    }
+
+    /**
+     * Returns the latest version of supported states
+     *
+     * @access public
+     * @return int
+     */
+    static public function GetLatestStateVersion() {
+        return self::STATE_VERSION;
     }
 
     /**
@@ -439,7 +476,23 @@ class ZPush {
         if (!isset(ZPush::$backend)) {
             // Initialize our backend
             $ourBackend = @constant('BACKEND_PROVIDER');
-            self::IncludeBackend($ourBackend);
+
+            // if no backend provider is defined, try to include automatically
+            if ($ourBackend == false || $ourBackend == "") {
+                $loaded = false;
+                foreach (self::$autoloadBackendPreference as $autoloadBackend) {
+                    ZLog::Write(LOGLEVEL_DEBUG, sprintf("ZPush::GetBackend(): trying autoload backend '%s'", $autoloadBackend));
+                    $loaded = self::IncludeBackend($autoloadBackend);
+                    if ($loaded) {
+                        $ourBackend = $autoloadBackend;
+                        break;
+                    }
+                }
+                if (!$ourBackend || !$loaded)
+                    throw new FatalMisconfigurationException("No Backend provider can not be loaded. Check your installation and configuration!");
+            }
+            else
+                self::IncludeBackend($ourBackend);
 
             if (class_exists($ourBackend))
                 ZPush::$backend = new $ourBackend();

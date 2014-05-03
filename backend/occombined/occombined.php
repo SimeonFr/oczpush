@@ -12,13 +12,14 @@ include_once('lib/default/backend.php');
 
 //include the OCCombinedBackend's own config file
 require_once("backend/occombined/config.php");
-require_once("backend/occombined/importer.php");
-require_once("backend/occombined/exporter.php");
+require_once("backend/combined/importer.php");
+require_once("backend/combined/exporter.php");
 
 class BackendOCCombined extends Backend {
     public $config;
     public $backends;
     private $activeBackend;
+    private $activeBackendID;
 
     /**
      * Constructor of the combined backend
@@ -32,8 +33,7 @@ class BackendOCCombined extends Backend {
         foreach ($this->config['backends'] as $i => $b){
             // load and instatiate backend
             ZPush::IncludeBackend($b['name']);
-			ZLog::Write(LOGLEVEL_INFO, $i.' => '.$b['name']);
-            $this->backends[$i] = new $b['name']($b['config']);
+            $this->backends[$i] = new $b['name']();
         }
         ZLog::Write(LOGLEVEL_INFO, sprintf("OCCombined %d backends loaded.", count($this->backends)));
     }

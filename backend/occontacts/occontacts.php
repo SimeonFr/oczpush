@@ -1,48 +1,34 @@
 <?php
 /***********************************************
-* File      :   vcarddir.php
-* Project   :   Z-Push
-* Descr     :   This backend is for vcard directories.
-*
-* Created   :   01.10.2007
-*
-* Copyright 2007 - 2013 Zarafa Deutschland GmbH
-*
-* This program is free software: you can redistribute it and/or modify
-* it under the terms of the GNU Affero General Public License, version 3,
-* as published by the Free Software Foundation with the following additional
-* term according to sec. 7:
-*
-* According to sec. 7 of the GNU Affero General Public License, version 3,
-* the terms of the AGPL are supplemented with the following terms:
-*
-* "Zarafa" is a registered trademark of Zarafa B.V.
-* "Z-Push" is a registered trademark of Zarafa Deutschland GmbH
-* The licensing of the Program under the AGPL does not imply a trademark license.
-* Therefore any rights, title and interest in our trademarks remain entirely with us.
-*
-* However, if you propagate an unmodified version of the Program you are
-* allowed to use the term "Z-Push" to indicate that you distribute the Program.
-* Furthermore you may use our trademarks where it is necessary to indicate
-* the intended purpose of a product or service provided you use it in accordance
-* with honest practices in industrial or commercial matters.
-* If you want to propagate modified versions of the Program under the name "Z-Push",
-* you may only do so if you have a written permission by Zarafa Deutschland GmbH
-* (to acquire a permission please contact Zarafa at trademark@zarafa.com).
-*
-* This program is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-* GNU Affero General Public License for more details.
-*
-* You should have received a copy of the GNU Affero General Public License
-* along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*
-* Consult LICENSE file for details
+* File      :   owncloud.php (based on vcarddir.php from z-push)
+* Project   :   oczpush, https://github.com/gza/oczpush
+* Descr     :   This backend is for owncloud (contacts only, for now)
+* Licence   :	AGPL
 ************************************************/
+
+
+if (! defined('STORE_SUPPORTS_UNICODE') ) define('STORE_SUPPORTS_UNICODE', true);
+setlocale(LC_CTYPE, "en_US.UTF-8");
+if (! defined('STORE_INTERNET_CPID') ) define('STORE_INTERNET_CPID', INTERNET_CPID_UTF8);
+
 include_once('lib/default/diffbackend/diffbackend.php');
 
-class BackendVCardDir extends BackendDiff {
+// OC4 fix
+if(isset($_SERVER['HTTPS']) and $_SERVER['HTTPS']<>'') $protocol='https://'; else $protocol='http://';
+if(! isset($_SERVER['HTTP_REFERER'])) $_SERVER['HTTP_REFERER']=$protocol.$_SERVER['SERVER_NAME'].'/index.php';
+// End OC4 fix
+
+require_once(OC_DIR.'/lib/config.php');
+require_once(OC_DIR.'/lib/base.php');
+
+// Check if we are a user
+OC_Util::checkAppEnabled('contacts');
+
+class BackendOCContacts extends BackendDiff {
+    
+    var $addressBookId;
+    var $userTZ;
+
     /**----------------------------------------------------------------------------------------------------------
      * default backend methods
      */
@@ -61,7 +47,24 @@ class BackendVCardDir extends BackendDiff {
      * @return boolean
      */
     public function Logon($username, $domain, $password) {
-        return true;
+    	ZLog::Write(LOGLEVEL_DEBUG,'OCContacts::Logon('.$username.')');
+        if(OC_User::login($username,$password)){
+            OC_Util::setUpFS();
+     	    ZLog::Write(LOGLEVEL_DEBUG, 'OCContacts::Logon : Logged');
+
+            $app = new OCA\Contacts\App($username);
+            $adressbooks = $app->getAddressBooksForUser();
+            $this->addressBookId = $adressbooks[0]->getId();
+	     
+     	    ZLog::Write(LOGLEVEL_DEBUG, 'OCContacts::Logon : addressBook selected :'.$addressBooks[0]->getDisplayName());
+	    $this->userTZ=\OCP\Config::getUserValue(\OCP\USER::getUser(), 'calendar', 'timezone', date_default_timezone_get());
+	    ZLog::Write(LOGLEVEL_DEBUG, 'OCContacts::Logon : TZ Selected: '.$this->userTZ);
+	    return true;
+        }
+        else {
+     	    ZLog::Write(LOGLEVEL_DEBUG, 'OCContacts::Logon : Not Logged');
+            return false;
+        }
     }
 
     /**
@@ -124,9 +127,9 @@ class BackendVCardDir extends BackendDiff {
      * @return array
      */
     public function GetFolderList() {
-        ZLog::Write(LOGLEVEL_DEBUG, 'VCDir::GetFolderList()');
+        ZLog::Write(LOGLEVEL_DEBUG, 'OCContacts::GetFolderList()');
         $contacts = array();
-        $folder = $this->StatFolder("root");
+        $folder = $this->StatFolder("contacts");
         $contacts[] = $folder;
 
         return $contacts;
@@ -141,8 +144,8 @@ class BackendVCardDir extends BackendDiff {
      * @return object       SyncFolder with information
      */
     public function GetFolder($id) {
-        ZLog::Write(LOGLEVEL_DEBUG, 'VCDir::GetFolder('.$id.')');
-        if($id == "root") {
+        ZLog::Write(LOGLEVEL_DEBUG, 'OCContacts::GetFolder('.$id.')');
+        if($id == "contacts") {
             $folder = new SyncFolder();
             $folder->serverid = $id;
             $folder->parentid = "0";
@@ -162,7 +165,7 @@ class BackendVCardDir extends BackendDiff {
      * @return array
      */
     public function StatFolder($id) {
-        ZLog::Write(LOGLEVEL_DEBUG, 'VCDir::StatFolder('.$id.')');
+        ZLog::Write(LOGLEVEL_DEBUG, 'OCContacts::StatFolder('.$id.')');
         $folder = $this->GetFolder($id);
 
         $stat = array();
@@ -206,6 +209,7 @@ class BackendVCardDir extends BackendDiff {
         return false;
     }
 
+    // @TODO repair!!!
     /**
      * Returns a list (array) of messages
      *
@@ -216,29 +220,22 @@ class BackendVCardDir extends BackendDiff {
      * @return array/false  array with messages or false if folder is not available
      */
     public function GetMessageList($folderid, $cutoffdate) {
-        ZLog::Write(LOGLEVEL_DEBUG, 'VCDir::GetMessageList('.$folderid.')');
+        ZLog::Write(LOGLEVEL_DEBUG, 'OCContacts::GetMessageList('.$folderid.')');
         $messages = array();
 
-        $dir = opendir($this->getPath());
-        if(!$dir)
-            return false;
+	foreach ( \OCA\Contacts\VCard::all($this->addressBookId) as $cardEntry ) {
+		$message["id"] = substr($cardEntry['uri'],0,-4);		
+		$message["mod"] = $cardEntry['lastmodified'];
+		$message["flags"] = 1;
 
-        while($entry = readdir($dir)) {
-            if(is_dir($this->getPath() .'/'.$entry))
-                continue;
+		$messages[] = $message;
+	}
+//	ZLog::Write(LOGLEVEL_DEBUG, 'OCContacts::GetMessageList: $message = ('.print_r($message,true));	
+	return $messages;
 
-            $message = array();
-            $message["id"] = $entry;
-            $stat = stat($this->getPath() .'/'.$entry);
-            $message["mod"] = $stat["mtime"];
-            $message["flags"] = 1; // always 'read'
-
-            $messages[] = $message;
-        }
-
-        return $messages;
     }
 
+    // @TODO repair!!!
     /**
      * Returns the actual SyncXXX object type.
      *
@@ -250,8 +247,8 @@ class BackendVCardDir extends BackendDiff {
      * @return object/false     false if the message could not be retrieved
      */
     public function GetMessage($folderid, $id, $contentparameters) {
-        ZLog::Write(LOGLEVEL_DEBUG, 'VCDir::GetMessage('.$folderid.', '.$id.', ..)');
-        if($folderid != "root")
+        ZLog::Write(LOGLEVEL_DEBUG, 'OCContacts::GetMessage('.$folderid.', '.$id.', ..)');
+        if($folderid != "contacts")
             return;
 
         $types = array ('dom' => 'type', 'intl' => 'type', 'postal' => 'type', 'parcel' => 'type', 'home' => 'type', 'work' => 'type',
@@ -272,7 +269,9 @@ class BackendVCardDir extends BackendDiff {
         // Parse the vcard
         $message = new SyncContact();
 
-        $data = file_get_contents($this->getPath() . "/" . $id);
+	$card=\OCA\Contacts\VCard::findWhereDAVDataIs($this->addressBookId, $id.'.vcf');
+	$data = $card['carddata'];
+
         $data = str_replace("\x00", '', $data);
         $data = str_replace("\r\n", "\n", $data);
         $data = str_replace("\r", "\n", $data);
@@ -306,6 +305,12 @@ class BackendVCardDir extends BackendDiff {
                     }else{
                         $fieldvalue[strtolower($matches[1])] = preg_split('/(?<!\\\\)(\,)/i', $matches[2], -1, PREG_SPLIT_NO_EMPTY);
                     }
+
+					if (strtolower($matches[1]) == "type") {
+						foreach ($fieldvalue["type"] as &$tmp) {
+							$tmp = strtolower($tmp);
+						}
+					}
                 }else{
                     if(!isset($types[strtolower($fieldpart)]))
                         continue;
@@ -347,12 +352,22 @@ class BackendVCardDir extends BackendDiff {
             $vcard[$type][] = $fieldvalue;
         }
 
-        if(isset($vcard['email'][0]['val'][0]))
-            $message->email1address = $vcard['email'][0]['val'][0];
-        if(isset($vcard['email'][1]['val'][0]))
-            $message->email2address = $vcard['email'][1]['val'][0];
-        if(isset($vcard['email'][2]['val'][0]))
-            $message->email3address = $vcard['email'][2]['val'][0];
+	
+//	ZLog::Write(LOGLEVEL_DEBUG, 'OCContacts::GetMessage: $vcard = ('.print_r($vcard,true));
+        
+		if(isset($vcard['email'])) {
+			foreach($vcard['email'] as $email) {
+				if(!isset($tel['type'])) $tel['type'] = array();
+				if(!isset($email['type'])) $email['type'] = array();
+				if(in_array('home', $email['type'])) {
+					$message->email1address = $email['val'][0];
+				} elseif(in_array('work', $email['type'])) {
+					$message->email2address = $email['val'][0];
+				} else {
+					$message->email3address = $email['val'][0];
+				}
+			}
+		}
 
         if(isset($vcard['tel'])){
             foreach($vcard['tel'] as $tel) {
@@ -456,13 +471,18 @@ class BackendVCardDir extends BackendDiff {
             $message->webpage = w2ui($vcard['url'][0]['val'][0]);
         if(!empty($vcard['categories'][0]['val']))
             $message->categories = $vcard['categories'][0]['val'];
-
-        if(!empty($vcard['photo'][0]['val'][0]))
-            $message->picture = base64_encode($vcard['photo'][0]['val'][0]);
-
+        if(!empty($vcard['photo'][0]['val'][0])) {
+		if ( $b64picture = $this->jpegWithSize($vcard['photo'][0]['val'][0], 49152)) { //49152 Value from lib/syncobjects/synccontact.php:177
+			$message->picture=$b64picture;
+		} else {
+			ZLog::Write(LOGLEVEL_ERROR, 'OCContacts::GetMessage: enable to initiate OC_Image object for contact');
+		}
+	}
+	ZLog::Write(LOGLEVEL_DEBUG, 'OCContacts::GetMessage: $message = ('.print_r($message,true));
         return $message;
     }
 
+    // @TODO repair!!!
     /**
      * Returns message stats, analogous to the folder stats from StatFolder().
      *
@@ -473,20 +493,25 @@ class BackendVCardDir extends BackendDiff {
      * @return array
      */
     public function StatMessage($folderid, $id) {
-        ZLog::Write(LOGLEVEL_DEBUG, 'VCDir::StatMessage('.$folderid.', '.$id.')');
-        if($folderid != "root")
+        ZLog::Write(LOGLEVEL_DEBUG, 'OCContacts::StatMessage('.$folderid.', '.$id.')');
+        if($folderid != "contacts")
             return false;
 
-        $stat = stat($this->getPath() . "/" . $id);
+	if($id == '')
+		return false;
 
         $message = array();
-        $message["mod"] = $stat["mtime"];
-        $message["id"] = $id;
+
+	$cardEntry=\OCA\Contacts\VCard::findWhereDAVDataIs($this->addressBookId,$id.'.vcf');
+//	ZLog::Write(LOGLEVEL_DEBUG, 'OCContacts::StatMessage('.print_r($cardEntry,true));
+        $message["id"] = substr($cardEntry['uri'],0,-4);
+	$message["mod"] = $cardEntry['lastmodified'];
         $message["flags"] = 1;
 
         return $message;
     }
 
+    // @TODO repair!!!
     /**
      * Called when a message has been changed on the mobile.
      * This functionality is not available for emails.
@@ -500,79 +525,123 @@ class BackendVCardDir extends BackendDiff {
      * @throws StatusException              could throw specific SYNC_STATUS_* exceptions
      */
     public function ChangeMessage($folderid, $id, $message) {
-        ZLog::Write(LOGLEVEL_DEBUG, 'VCDir::ChangeMessage('.$folderid.', '.$id.', ..)');
+        ZLog::Write(LOGLEVEL_DEBUG, 'OCContacts::ChangeMessage('.$folderid.', '.$id.', ..)');
         $mapping = array(
             'fileas' => 'FN',
             'lastname;firstname;middlename;title;suffix' => 'N',
-            'email1address' => 'EMAIL;INTERNET',
-            'email2address' => 'EMAIL;INTERNET',
-            'email3address' => 'EMAIL;INTERNET',
-            'businessphonenumber' => 'TEL;WORK',
-            'business2phonenumber' => 'TEL;WORK',
-            'businessfaxnumber' => 'TEL;WORK;FAX',
-            'homephonenumber' => 'TEL;HOME',
-            'home2phonenumber' => 'TEL;HOME',
-            'homefaxnumber' => 'TEL;HOME;FAX',
-            'mobilephonenumber' => 'TEL;CELL',
-            'carphonenumber' => 'TEL;CAR',
-            'pagernumber' => 'TEL;PAGER',
-            ';;businessstreet;businesscity;businessstate;businesspostalcode;businesscountry' => 'ADR;WORK',
-            ';;homestreet;homecity;homestate;homepostalcode;homecountry' => 'ADR;HOME',
+            'email1address' => 'EMAIL;TYPE=INTERNET;TYPE=HOME',
+            'email2address' => 'EMAIL;TYPE=INTERNET;TYPE=WORK',
+            'email3address' => 'EMAIL;TYPE=INTERNET',
+            'businessphonenumber' => 'TEL;TYPE=WORK',
+            'business2phonenumber' => 'TEL;TYPE=WORK',
+            'businessfaxnumber' => 'TEL;TYPE=WORK;TYPE=FAX',
+            'homephonenumber' => 'TEL;TYPE=HOME',
+            'home2phonenumber' => 'TEL;TYPE=HOME',
+            'homefaxnumber' => 'TEL;TYPE=HOME;TYPE=FAX',
+            'mobilephonenumber' => 'TEL;TYPE=CELL',
+            'carphonenumber' => 'TEL;TYPE=CAR',
+            'pagernumber' => 'TEL;TYPE=PAGER',
+            ';;businessstreet;businesscity;businessstate;businesspostalcode;businesscountry' => 'ADR;TYPE=WORK',
+            ';;homestreet;homecity;homestate;homepostalcode;homecountry' => 'ADR;TYPE=HOME',
             ';;otherstreet;othercity;otherstate;otherpostalcode;othercountry' => 'ADR',
             'companyname' => 'ORG',
             'body' => 'NOTE',
             'jobtitle' => 'ROLE',
             'webpage' => 'URL',
         );
+
+	$oldNote = "";
+	$hasNote = false;
+	if(!$id){
+		$newvcard = true;
+		$id = substr(md5(rand().time()),0,10);
+		ZLog::Write(LOGLEVEL_DEBUG, 'id: $id');
+// @TODO gere collisions	        while( is_null(OC_Contacts_VCard::findWhereDAVDataIs($this->addressBookId,$id.'.vcf'))){
+//			ZLog::Write(LOGLEVEL_DEBUG, 'idN: $id');
+//            		$id = substr(md5(rand().time()),0,10); 
+//		}
+	} else {
+		$newvcard = false;
+
+		$card = \OCA\Contacts\VCard::findWhereDAVDataIs($this->addressBookId, $id.'.vcf');
+		$data = $card['carddata'];
+		$data = str_replace("\x00", '', $data);
+		$data = str_replace("\r\n", "\n", $data);
+		$data = str_replace("\r", "\n", $data);
+		$data = preg_replace('/(\n)([ \t])/i', '', $data);
+		$lines = explode("\n", $data);
+
+		foreach($lines as $line) {
+		    if (trim($line) == '')
+			continue;
+		    $pos = strpos($line, ':');
+		    if ($pos === false)
+			continue;
+		    $field = trim(substr($line, 0, $pos));
+		    $value = trim(substr($line, $pos+1));
+
+		    if (strtolower($field) === "note") {
+			$oldNote = $value;
+			ZLog::Write(LOGLEVEL_DEBUG, "Old note: " . $oldNote);
+			break;
+		    }
+
+		}
+	}
+
         $data = "BEGIN:VCARD\nVERSION:2.1\nPRODID:Z-Push\n";
         foreach($mapping as $k => $v){
             $val = '';
             $ks = explode(';', $k);
-            foreach($ks as $i){
+	    foreach($ks as $i){
                 if(!empty($message->$i))
+		{
+			
+		    ZLog::Write(LOGLEVEL_DEBUG,"\$message->\$i=".$message->$i);
                     $val .= $this->escape($message->$i);
+		}
                 $val.=';';
+	    
+		if ($i === 'body' && isset($message->$i))
+		    $hasNote = true;
             }
-            if(empty($val))
-                continue;
+	    
+	    if(preg_match('/^[;]*$/',$val))
+		continue;
+
+	    ZLog::Write(LOGLEVEL_DEBUG,"\$val=$val");
             $val = substr($val,0,-1);
             if(strlen($val)>50){
                 $data .= $v.":\n\t".substr(chunk_split($val, 50, "\n\t"), 0, -1);
             }else{
                 $data .= $v.':'.$val."\n";
-            }
+	    }
         }
         if(!empty($message->categories))
             $data .= 'CATEGORIES:'.implode(',', $this->escape($message->categories))."\n";
         if(!empty($message->picture))
             $data .= 'PHOTO;ENCODING=BASE64;TYPE=JPEG:'."\n\t".substr(chunk_split($message->picture, 50, "\n\t"), 0, -1);
         if(isset($message->birthday))
-            $data .= 'BDAY:'.date('Y-m-d', $message->birthday)."\n";
-        $data .= "END:VCARD";
+	    $data .= 'BDAY:'.date('Y-m-d', $message->birthday)."\n";
+	if(!$hasNote) {
+	    ZLog::Write(LOGLEVEL_DEBUG, "Keeping old note");
+	    $data .= 'NOTE:'.$oldNote."\n";
+	} else {
+	    ZLog::Write(LOGLEVEL_DEBUG, "Using new note");
+	}
 
 // not supported: anniversary, assistantname, assistnamephonenumber, children, department, officelocation, radiophonenumber, spouse, rtf
+	$data .= "UID:$id\n";
+	$data .= "END:VCARD";
 
-        if(!$id){
-            if(!empty($message->fileas)){
-                $name = u2wi($message->fileas);
-            }elseif(!empty($message->lastname)){
-                $name = $name = u2wi($message->lastname);
-            }elseif(!empty($message->firstname)){
-                $name = $name = u2wi($message->firstname);
-            }elseif(!empty($message->companyname)){
-                $name = $name = u2wi($message->companyname);
-            }else{
-                $name = 'unknown';
-            }
-            $name = preg_replace('/[^a-z0-9 _-]/i', '', $name);
-            $id = $name.'.vcf';
-            $i = 0;
-            while(file_exists($this->getPath().'/'.$id)){
-                $i++;
-                $id = $name.$i.'.vcf';
-            }
-        }
-        file_put_contents($this->getPath().'/'.$id, $data);
+	if ($newvcard)
+	{
+		ZLog::Write(LOGLEVEL_DEBUG, 'OCContacts::ChangeMessage, OC_Contacts_VCard::add('.$this->addressBookId.', '.$data);
+		\OCA\Contacts\VCard::addFromDAVData($this->addressBookId,$id.".vcf",$data);
+        } else {
+		ZLog::Write(LOGLEVEL_DEBUG, 'OCContacts::ChangeMessage, OC_Contacts_VCard::edit('.$this->addressBookId.', '.$data);
+		\OCA\Contacts\VCard::editFromDAVData($this->addressBookId,$id.".vcf",$data);
+	}
         return $this->StatMessage($folderid, $id);
     }
 
@@ -591,6 +660,7 @@ class BackendVCardDir extends BackendDiff {
         return false;
     }
 
+    // @TODO repair!!!
     /**
      * Called when the user has requested to delete (really delete) a message
      *
@@ -602,7 +672,8 @@ class BackendVCardDir extends BackendDiff {
      * @throws StatusException              could throw specific SYNC_STATUS_* exceptions
      */
     public function DeleteMessage($folderid, $id) {
-        return unlink($this->getPath() . '/' . $id);
+	$card=\OCA\Contacts\VCard::findWhereDAVDataIs($this->addressBookId,$id.'.vcf');
+	return \OCA\Contacts\VCard::delete($card['id']);
     }
 
     /**
@@ -625,16 +696,6 @@ class BackendVCardDir extends BackendDiff {
     /**----------------------------------------------------------------------------------------------------------
      * private vcard-specific internals
      */
-
-    /**
-     * The path we're working on
-     *
-     * @access private
-     * @return string
-     */
-    private function getPath() {
-        return str_replace('%u', $this->store, VCARDDIR_DIR);
-    }
 
     /**
      * Escapes a string
@@ -669,5 +730,60 @@ class BackendVCardDir extends BackendDiff {
         $data = str_replace(array('\\\\', '\\;', '\\,', '\\n','\\N'),array('\\', ';', ',', "\n", "\n"),$data);
         return $data;
     }
+
+    /**
+     * resize an image to fit in a limited weight
+     *
+     * @param string	          $picture         image string (png, jpeg, etc..)
+     * @param integer		  $maxSize         maximum weight in octets
+     * @param float		  $stepsize	   after first resize try, iterate at this stepsize until good
+     *
+     * @access private
+     * @return string		  $b64		   base64 encoded image
+     */
+    function jpegWithSize($picture,$maxSize,$stepsize=0.25) {
+    	$image=new OC_Image($picture);
+	$b64=$this->gd2jpeg($image);
+	ZLog::Write(LOGLEVEL_DEBUG, 'jpegWithSize : start with curSize: '.strlen($b64).' o / '.$maxSize.' o');
+        if (strlen($b64) > $maxSize) {
+                ZLog::Write(LOGLEVEL_DEBUG, 'jpegWithSize : curSize: '.strlen($b64).' o >'.$maxSize.' o');
+                $b64=$this->gd2jpeg($image,$maxSize/strlen($b64));
+                $i=0;
+                while (strlen($b64) > $maxSize and $i<10) {
+                        $i++;
+                        $b64=$this->gd2jpeg($image,$stepsize);
+                        ZLog::Write(LOGLEVEL_DEBUG, 'jpegWithSize : curSize: '.strlen($b64).' o >'.$maxSize.' o');
+                }
+                if (strlen($b64) > $maxSize) {
+                        ZLog::Write(LOGLEVEL_WARN, 'jpegWithSize : not in bounds after '.$i.' sizes !!!! bizarre...');
+                        return null;
+                }
+        }
+	ZLog::Write(LOGLEVEL_DEBUG, 'jpegWithSize : return with curSize: '.strlen($b64).' o / '.$maxSize.' o');
+        return $b64;
+     }
+
+
+    /**
+     * convert image from gd to jpeg string (optionaly with resize by ratio)
+     *
+     * @param gd ressource        $image           image to be converted
+     * @param float		  $ratio	   resize factor
+     *
+     * @return string                              jpeg image (base64 encoded)
+     */
+     function gd2jpeg(& $image,$ratio = 1) {
+     	if ( $ratio != 1 ) {
+	        $maxPix=max(imageSX($image->resource()),imageSY($image->resource()));
+		$image->resize($maxPix*$ratio);
+	}
+	ob_start();
+	$res = imagejpeg($image->resource());
+        if (!$res) {
+        	ZLog::Write(LOGLEVEL_DEBUG, 'gd2jpeg : Error getting image data.');
+        }
+        return base64_encode(ob_get_clean());
+     }
+
 };
 ?>
