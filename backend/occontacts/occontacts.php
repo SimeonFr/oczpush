@@ -524,7 +524,7 @@ class BackendOCContacts extends BackendDiff {
      * @return array                        same return value as StatMessage()
      * @throws StatusException              could throw specific SYNC_STATUS_* exceptions
      */
-    public function ChangeMessage($folderid, $id, $message) {
+    public function ChangeMessage($folderid, $id, $message, $contentParameters) {
         ZLog::Write(LOGLEVEL_DEBUG, 'OCContacts::ChangeMessage('.$folderid.', '.$id.', ..)');
         $mapping = array(
             'fileas' => 'FN',
