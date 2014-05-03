@@ -22,10 +22,10 @@ class BackendDummy extends BackendDiff {
 	public function GetMessageList($folderid, $cutoffdate) { return false; }
 	public function GetMessage($folderid, $id, $contentparameters) { return false; }
 	public function StatMessage($folderid, $id) { return false; }
-	public function ChangeMessage($folderid, $id, $message) { return false; }
-	public function SetReadFlag($folderid, $id, $flags) { return false; }
-	public function DeleteMessage($folderid, $id) { return false; }
-	public function MoveMessage($folderid, $id, $newfolderid) { return false; }
+	public function ChangeMessage($folderid, $id, $message, $contentparameters) { return false; }
+	public function SetReadFlag($folderid, $id, $flags, $contentparameters) { return false; }
+	public function DeleteMessage($folderid, $id, $contentparameters) { return false; }
+	public function MoveMessage($folderid, $id, $newfolderid, $contentparameters) { return false; }
 }
 
 ?>
