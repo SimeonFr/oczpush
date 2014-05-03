@@ -30,14 +30,8 @@ class BackendOCCombinedConfig {
                 'i' => array(
                     'name' => 'BackendIMAP',
                 ),
-                'z' => array(
-                    'name' => 'BackendZarafa',
-                ),
                 'm' => array(
                     'name' => 'BackendMaildir',
-                ),
-                'v' => array(
-                    'name' => 'BackendVCardDir',
                 ),
             	'o' => array(
                     'name' => 'BackendOCContacts',
