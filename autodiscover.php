@@ -55,8 +55,8 @@ switch($schema[1]) {
 	<autodiscover:Response>
 		<autodiscover:Culture>en:us</autodiscover:Culture>
 		<autodiscover:User>
-			<autodiscover:DisplayName><?php echo $email[1]; ?></autodiscover:DisplayName>
-			<autodiscover:EMailAddress><?php echo $email[0]; ?></autodiscover:EMailAddress>
+			<autodiscover:DisplayName><?php echo $email[1].$email[2]; ?></autodiscover:DisplayName>
+			<autodiscover:EMailAddress><?php echo $email[1].$email[2]; ?></autodiscover:EMailAddress>
 		</autodiscover:User>
 		<autodiscover:Action>
 			<autodiscover:Settings>
