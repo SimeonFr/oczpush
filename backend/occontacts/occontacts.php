@@ -56,7 +56,7 @@ class BackendOCContacts extends BackendDiff {
             $adressbooks = $app->getAddressBooksForUser();
             $this->addressBookId = $adressbooks[0]->getId();
 	     
-     	    ZLog::Write(LOGLEVEL_DEBUG, 'OCContacts::Logon : addressBook selected :'.$addressBooks[0]->getDisplayName());
+     	    ZLog::Write(LOGLEVEL_DEBUG, 'OCContacts::Logon : addressBook selected :'.$adressbooks[0]->getDisplayName());
 	    $this->userTZ=\OCP\Config::getUserValue(\OCP\USER::getUser(), 'calendar', 'timezone', date_default_timezone_get());
 	    ZLog::Write(LOGLEVEL_DEBUG, 'OCContacts::Logon : TZ Selected: '.$this->userTZ);
 	    return true;
