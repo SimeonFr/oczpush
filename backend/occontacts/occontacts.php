@@ -18,7 +18,7 @@ if(isset($_SERVER['HTTPS']) and $_SERVER['HTTPS']<>'') $protocol='https://'; els
 if(! isset($_SERVER['HTTP_REFERER'])) $_SERVER['HTTP_REFERER']=$protocol.$_SERVER['SERVER_NAME'].'/index.php';
 // End OC4 fix
 
-require_once(OC_DIR.'/lib/config.php');
+require_once(OC_DIR.'/config/config.php');
 require_once(OC_DIR.'/lib/base.php');
 
 // Check if we are a user
