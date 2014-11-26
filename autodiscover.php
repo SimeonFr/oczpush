@@ -45,7 +45,7 @@ if (!isset($email) || !isset($schema)) {
 }
 
 ZLog::Write(LOGLEVEL_DEBUG, 'AutoDiscover :: Request: '.$data);
-ZLog::Write(LOGLEVEL_INFO, 'AutoDiscover :: Request by email: '.$email[0]);
+ZLog::Write(LOGLEVEL_INFO, 'AutoDiscover :: Request by email: '.$email[1].$email[2]);
 ZLog::Write(LOGLEVEL_DEBUG, 'AutoDiscover :: Acceptable Response Schema: '.$schema[1]);
 
 switch($schema[1]) {

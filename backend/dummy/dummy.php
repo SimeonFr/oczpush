@@ -26,6 +26,7 @@ class BackendDummy extends BackendDiff {
 	public function SetReadFlag($folderid, $id, $flags, $contentparameters) { return false; }
 	public function DeleteMessage($folderid, $id, $contentparameters) { return false; }
 	public function MoveMessage($folderid, $id, $newfolderid, $contentparameters) { return false; }
+	public function GetSupportedASVersion() { return ZPush::ASV_14; }
 }
 
 ?>

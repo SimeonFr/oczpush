@@ -292,7 +292,7 @@ class BackendLDAP extends BackendDiff {
 		}
 	}
 	
-	public function ChangeMessage($folderid, $id, $message)
+	public function ChangeMessage($folderid, $id, $message, $contentParameters)
 	{
 		ZLog::Write(LOGLEVEL_DEBUG, sprintf("BackendLDAP->ChangeMessage('%s','%s')", $folderid, $id));
 		$base_dns = explode("|", LDAP_BASE_DNS);
@@ -443,12 +443,12 @@ class BackendLDAP extends BackendDiff {
 		return $ldap;
 	}
 	
-	public function SetReadFlag($folderid, $id, $flags)
+	public function SetReadFlag($folderid, $id, $flags, $contentParameters)
 	{
 		return false;
 	}
 	
-	public function DeleteMessage($folderid, $id)
+	public function DeleteMessage($folderid, $id, $contentParameters)
 	{
 		ZLog::Write(LOGLEVEL_DEBUG, sprintf("BackendLDAP->DeleteMessage('%s','%s')", $folderid, $id));
 		$base_dns = explode("|", LDAP_BASE_DNS);
@@ -473,7 +473,7 @@ class BackendLDAP extends BackendDiff {
 		return false;
 	}
 	
-	public function MoveMessage($folderid, $id, $newfolderid)
+	public function MoveMessage($folderid, $id, $newfolderid, $contentParameters)
 	{
 		ZLog::Write(LOGLEVEL_DEBUG, sprintf("BackendLDAP->MoveMessage('%s','%s', '%s')", $folderid, $id, $newfolderid));
 		$base_dns = explode("|", LDAP_BASE_DNS);

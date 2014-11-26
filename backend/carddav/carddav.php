@@ -23,9 +23,9 @@
 require_once("backend/carddav/config.php");
 
 include_once('lib/default/diffbackend/diffbackend.php');
-include_once('include/carddav.php');
-include_once('include/z_RTF.php');
-include_once('include/vCard.php');
+include_once('lib/oc/carddav.php');
+include_once('lib/oc/z_RTF.php');
+include_once('lib/oc/vCard.php');
 
 class BackendCardDAV extends BackendDiff {
 	// SOGoSync version
@@ -295,7 +295,7 @@ class BackendCardDAV extends BackendDiff {
 	 * Change/Add a message with contents received from ActiveSync
 	 * @see BackendDiff::ChangeMessage()
 	 */
-	public function ChangeMessage($folderid, $id, $message)
+	public function ChangeMessage($folderid, $id, $message, $contentParameters)
 	{
 		ZLog::Write(LOGLEVEL_DEBUG, sprintf("BackendCardDAV->ChangeMessage('%s','%s')", $folderid, $id));
 		if (defined(CARDDAV_READONLY) && CARDDAV_READONLY)
@@ -335,7 +335,7 @@ class BackendCardDAV extends BackendDiff {
 	 * Change the read flag is not supported.
 	 * @see BackendDiff::SetReadFlag()
 	 */
-	public function SetReadFlag($folderid, $id, $flags)
+	public function SetReadFlag($folderid, $id, $flags, $contentParameters)
 	{
 		return false;
 	}
@@ -344,7 +344,7 @@ class BackendCardDAV extends BackendDiff {
 	 * Delete a message from the CardDAV server.
 	 * @see BackendDiff::DeleteMessage()
 	 */
-	public function DeleteMessage($folderid, $id)
+	public function DeleteMessage($folderid, $id, $contentParameters)
 	{
 		ZLog::Write(LOGLEVEL_DEBUG, sprintf("BackendCardDAV->DeleteMessage('%s','%s')", $folderid, $id));
 		if (defined(CARDDAV_READONLY) && CARDDAV_READONLY)
@@ -361,7 +361,7 @@ class BackendCardDAV extends BackendDiff {
 	 * Move a message is not supported by CardDAV.
 	 * @see BackendDiff::MoveMessage()
 	 */
-	public function MoveMessage($folderid, $id, $newfolderid)
+	public function MoveMessage($folderid, $id, $newfolderid, $contentParameters)
 	{
 		return false;
 	}

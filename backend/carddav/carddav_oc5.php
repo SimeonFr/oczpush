@@ -23,9 +23,9 @@
 require_once("backend/carddav/config.php");
 
 include_once('lib/default/diffbackend/diffbackend.php');
-include_once('include/carddav_iOC5.php');
-include_once('include/z_RTF.php');
-include_once('include/vCard.php');
+include_once('lib/oc/carddav_iOC5.php');
+include_once('lib/oc/z_RTF.php');
+include_once('lib/oc/vCard.php');
 
 class BackendCardDAV_OC5 extends BackendDiff implements ISearchProvider {
 	// SOGoSync version
