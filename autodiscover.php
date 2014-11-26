@@ -26,19 +26,20 @@ preg_match('/\<EMailAddress\>(.*?)(@.*)?\<\/EMailAddress\>/', $data, $email);
 preg_match('/\<AcceptableResponseSchema\>(.*?)\<\/AcceptableResponseSchema\>/', $data, $schema);
 
 ob_start();
-echo '<?xml version="1.0" encoding="utf-8"?>';
 
 if (!isset($email) || !isset($schema)) {
 	ZLog::Write(LOGLEVEL_ERROR, 'AutoDiscover :: Unsupported Request: '.$data);
 ?>
-<Autodiscover xmlns:autodiscover="http://schemas.microsoft.com/exchange/autodiscover/mobilesync/responseschema/2006">
-	<autodiscover:Response>
-		<autodiscover:Error Time="<?php echo date('H:i:s.u'); ?>" Id="1054084152">
-			<autodiscover:ErrorCode>600</autodiscover:ErrorCode>
-			<autodiscover:Message>Invalid Request</autodiscover:Message>
-			<autodiscover:DebugData />
-		</autodiscover:Error>
-		</autodiscover:Response>
+<?xml version="1.0" encoding="utf-8"?>
+<Autodiscover xmlns="http://schemas.microsoft.com/exchange/autodiscover/responseschema/2006" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+	<Response xmlns="http://schemas.microsoft.com/exchange/autodiscover/mobilesync/responseschema/2006">
+	<Response>
+		<Error Time="<?php echo date('H:i:s.u'); ?>" Id="1054084152">
+			<ErrorCode>600</ErrorCode>
+			<Message>Invalid Request</Message>
+			<DebugData />
+		</Error>
+		</Response>
 	<Autodiscover>
 <?php
 	exit;
@@ -51,37 +52,39 @@ ZLog::Write(LOGLEVEL_DEBUG, 'AutoDiscover :: Acceptable Response Schema: '.$sche
 switch($schema[1]) {
 	case 'http://schemas.microsoft.com/exchange/autodiscover/mobilesync/responseschema/2006': 
 ?>
-<Autodiscover xmlns:autodiscover="http://schemas.microsoft.com/exchange/autodiscover/mobilesync/responseschema/2006">
-	<autodiscover:Response>
-		<autodiscover:Culture>en:us</autodiscover:Culture>
-		<autodiscover:User>
-			<autodiscover:DisplayName><?php echo $email[1].$email[2]; ?></autodiscover:DisplayName>
-			<autodiscover:EMailAddress><?php echo $email[1].$email[2]; ?></autodiscover:EMailAddress>
-		</autodiscover:User>
-		<autodiscover:Action>
-			<autodiscover:Settings>
-				<autodiscover:Server>
-					<autodiscover:Type>MobileSync</autodiscover:Type>
-					<autodiscover:Url><?php echo $url; ?></autodiscover:Url>
-					<autodiscover:Name><?php echo $url; ?></autodiscover:Name>
-				</autodiscover:Server>
-			</autodiscover:Settings>
-		</autodiscover:Action>
-	</autodiscover:Response>
+<?xml version="1.0" encoding="utf-8"?>
+<Autodiscover xmlns="http://schemas.microsoft.com/exchange/autodiscover/responseschema/2006" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+	<Response xmlns="http://schemas.microsoft.com/exchange/autodiscover/mobilesync/responseschema/2006">
+		<Culture>en:us</Culture>
+		<User>
+			<DisplayName><?php echo $email[1].$email[2]; ?></DisplayName>
+			<EMailAddress><?php echo $email[1].$email[2]; ?></EMailAddress>
+		</User>
+		<Action>
+			<Settings>
+				<Server>
+					<Type>MobileSync</Type>
+					<Url><?php echo $url; ?></Url>
+					<Name><?php echo $url; ?></Name>
+				</Server>
+			</Settings>
+		</Action>
+	</Response>
 </Autodiscover>
 <?php
 	ZLog::Write(LOGLEVEL_INFO, 'AutoDiscover :: Successful!');
 	break;
 	default:
 ?>
-<Autodiscover xmlns:autodiscover="http://schemas.microsoft.com/exchange/autodiscover/mobilesync/responseschema/2006">
-	<autodiscover:Response>
-		<autodiscover:Error Time="<?php echo date('H:i:s.u'); ?>" Id="1054084152">
-			<autodiscover:ErrorCode>601</autodiscover:ErrorCode>
-			<autodiscover:Message>Invalid Request</autodiscover:Message>
-			<autodiscover:DebugData />
-		</autodiscover:Error>
-	</autodiscover:Response>
+<?xml version="1.0" encoding="utf-8"?>
+<Autodiscover xmlns="http://schemas.microsoft.com/exchange/autodiscover/responseschema/2006" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+	<Response xmlns="http://schemas.microsoft.com/exchange/autodiscover/mobilesync/responseschema/2006">
+		<Error Time="<?php echo date('H:i:s.u'); ?>" Id="1054084152">
+			<ErrorCode>601</ErrorCode>
+			<Message>Invalid Request</Message>
+			<DebugData />
+		</Error>
+	</Response>
 <Autodiscover>
 <?php
 	ZLog::Write(LOGLEVEL_WARN, 'AutoDiscover :: Unsupported Schema: '.$schema[1]);
