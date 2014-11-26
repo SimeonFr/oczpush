@@ -196,7 +196,7 @@
     // **********************
     define('OC_DIR', '/var/www/owncloud');
     // if you want to use a mail backend, set OC_MAIL to 'i' for BackendIMAP, 'm' for BackendMaildir
-    define('OC_MAIL', 'd');
+    define('OC_MAIL', 'i');
     
 /**********************************************************************************
  *  Search provider settings
