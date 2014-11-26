@@ -51,6 +51,7 @@ class BackendOCCalendar extends BackendDiff {
 	public function Logon($username, $domain, $password) {
 		ZLog::Write(LOGLEVEL_DEBUG, 'OCCalendar::Logon(' . $username . ')');
 		if (OC_User::login($username, $password)) {
+			OC_App::loadApps();
 			OC_Util::setUpFS();
 			ZLog::Write(LOGLEVEL_DEBUG, 'OCCalendar::Logon : Logged');
 
